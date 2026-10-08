@@ -38,3 +38,68 @@ Test it: pytest tests/test_pipeline.py -k app
 #
 # What the page does NOT do: arithmetic on rows, cleaning, merging. If you find
 # yourself writing a loop or an apply here, that logic belongs in the package.
+
+import streamlit as st
+
+from payroll import (
+    build_payroll,
+    load_employees,
+    load_timesheet,
+    payroll_export,
+)
+
+
+st.title("Salt City Coffee — Weekly Payroll")
+st.write(
+    "Upload this week's timesheet export. The roster is loaded automatically. "
+    "Check the totals, fix anything flagged, then download the file for the "
+    "payroll provider."
+)
+
+roster = load_employees()
+upload = st.file_uploader("Upload weekly timesheet (CSV)", type="csv", key="timesheet")
+
+if upload is not None:
+    timesheet = load_timesheet(upload)
+    payroll = build_payroll(timesheet, roster)
+    payroll_date = payroll["payroll_date"].iloc[0]
+
+    st.subheader(f"Pay period ending {payroll_date}")
+    metric_columns = st.columns(4)
+    metric_columns[0].metric(
+        "Employees paid",
+        len(payroll[payroll["pay_type"] != "unmatched"]),
+    )
+    metric_columns[1].metric("Total hours", payroll["hours_worked"].sum())
+    metric_columns[2].metric(
+        "Total gross pay",
+        f"${payroll['gross_pay'].sum():,.2f}",
+    )
+    metric_columns[3].metric(
+        "Overtime weeks",
+        len(payroll[payroll["pay_type"] == "overtime"]),
+    )
+
+    unmatched = payroll[payroll["pay_type"] == "unmatched"]
+    if len(unmatched):
+        employee_ids = ", ".join(unmatched["employee_id"].astype(str))
+        st.warning(
+            f"{len(unmatched)} timesheet row(s) have an employee_id that is "
+            f"not on the roster: {employee_ids}. They are NOT in the export — "
+            "add them to HR's roster and re-upload."
+        )
+    else:
+        st.success("Every timesheet employee matched the roster.")
+
+    st.subheader("Payroll table")
+    st.caption(
+        "Raw values on the left, computed columns on the right — nothing is overwritten."
+    )
+    st.dataframe(payroll)
+    st.download_button(
+        "Download payroll CSV for the provider",
+        payroll_export(payroll).to_csv(index=False),
+        file_name=f"payroll_{payroll_date}.csv",
+        mime="text/csv",
+        key="download",
+    )
