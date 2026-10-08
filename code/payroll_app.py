@@ -93,7 +93,8 @@ if upload is not None:
 
     st.subheader("Payroll table")
     st.caption(
-        "Raw values on the left, computed columns on the right — nothing is overwritten."
+        "Raw values on the left, computed columns on the right — "
+        "nothing is overwritten."
     )
     st.dataframe(payroll)
     st.download_button(
