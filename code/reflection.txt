@@ -2,4 +2,5 @@ The most important thing that I learned was to preserve the original
 raw columns with lineage. Also the clean currency function was cool to
 learn since I believe that there is a clear common use for this that will
 come in handy again. I want to get better about merging dataframes because
-I messed it up a lot at first.
+I messed it up a lot at first. I will spend some time practicing
+matching rows by a shared key and checking which rows remain after a merge.
